@@ -1,4 +1,4 @@
-use std::ops::MulAssign;
+use std::ops::{AddAssign, Mul, MulAssign};
 
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
@@ -56,12 +56,13 @@ fn setup(
         MaterialMesh2dBundle {
             mesh: meshes.add(Triangle2d::default()).into(),
             material: materials.add(SHIP_COLOR),
-            transform: Transform::from_translation(SHIP_STARTING_POSITION).with_scale(Vec2::splat(SHIP_SCALE).extend(1.0)),
+            transform: Transform::from_translation(SHIP_STARTING_POSITION)
+                .with_scale(Vec2::splat(SHIP_SCALE).extend(1.0)),
             ..default()
         },
         Ship,
-        Acceleration(Vec2::new(0.0, 0.0)),
-        Velocity(Vec2::new(0.0, 0.0)),
+        Acceleration(Vec2::ZERO),
+        Velocity(Vec2::ZERO),
         Drag(SHIP_DRAG),
         VelocityLimit(SHIP_VELOCITY_LIMIT)
     ));
@@ -74,54 +75,47 @@ fn ship_input(
 ) {
     let (mut ship_acceleration, mut ship_transform) = query.single_mut();
     ship_acceleration.0 = Vec2::new(0.0, 0.0);
+    let direction = ship_transform.rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate();
 
-    if keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp) {
-        let direction = ship_transform.rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate();
+    if keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
         ship_acceleration.0 = direction * SHIP_ACCELERATION * time.delta_seconds()
     }
 
-    if keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown) {
-        let direction = ship_transform.rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate();
+    if keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) {
         ship_acceleration.0 = -direction * SHIP_DECELERATION * time.delta_seconds()
     }
 
-    if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
+    if keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
         ship_transform.rotate_z(SHIP_ROTATION_SPEED * time.delta_seconds());
     }
 
-    if keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight) {
+    if keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
         ship_transform.rotate_z(-SHIP_ROTATION_SPEED * time.delta_seconds());
     }
 }
 
 fn apply_acceleration(mut query: Query<(&mut Velocity, &Acceleration)>, time: Res<Time>) {
     for (mut velocity, acceleration) in &mut query {
-        velocity.x += acceleration.x * time.delta_seconds();
-        velocity.y += acceleration.y * time.delta_seconds();
+        velocity.add_assign(acceleration.mul(time.delta_seconds()));
     }
 }
 
 fn apply_drag(mut query: Query<(&mut Velocity, &Drag)>, time: Res<Time>) {
     for (mut velocity, drag) in &mut query {
-        let scale = 1.0 - (drag.0 * time.delta_seconds());
-        velocity.x *= scale;
-        velocity.y *= scale;
+        velocity.mul_assign(1.0 - (drag.0 * time.delta_seconds()));
     }
 }
 
 fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
     for (mut velocity, limit) in &mut query {
         let speed = velocity.0.length();
-        if speed > limit.0 {
-            velocity.mul_assign(limit.0 / speed);
-        }
+        if speed > limit.0 { velocity.mul_assign(limit.0 / speed); }
     }
 }
 
 fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
     for (mut transform, velocity) in &mut query {
-        transform.translation.x += velocity.x * time.delta_seconds();
-        transform.translation.y += velocity.y * time.delta_seconds();
+        transform.translation.add_assign(velocity.mul(time.delta_seconds()).extend(0.0));
     }
 }
 
