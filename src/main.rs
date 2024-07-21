@@ -1,4 +1,5 @@
-use std::ops::{Mul, MulAssign};
+use std::ops::MulAssign;
+
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 
@@ -108,7 +109,7 @@ fn apply_drag(mut query: Query<(&mut Velocity, &Drag)>, time: Res<Time>) {
     }
 }
 
-fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>, time: Res<Time>) {
+fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
     for (mut velocity, limit) in &mut query {
         let speed = velocity.0.length();
         if speed > limit.0 {
