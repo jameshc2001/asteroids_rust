@@ -9,9 +9,10 @@ const FORWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyW, KeyCode::ArrowUp];
 const BACKWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyS, KeyCode::ArrowDown];
 const LEFT_INPUT: [KeyCode; 2] = [KeyCode::KeyA, KeyCode::ArrowLeft];
 const RIGHT_INPUT: [KeyCode; 2] = [KeyCode::KeyD, KeyCode::ArrowRight];
+const SHOOT_INPUT: KeyCode = KeyCode::Space;
 
 const SHIP_COLOR: Color = Color::WHITE;
-const SHIP_STARTING_POSITION: Vec3 = Vec3::new(50.0, -50.0, 1.0);
+const SHIP_STARTING_POSITION: Vec3 = Vec3::new(50.0, -50.0, 100.0); //Always draw ship on top
 const SHIP_SCALE: f32 = 25.0;
 const SHIP_ACCELERATION: f32 = 50000.0;
 const SHIP_DECELERATION: f32 = SHIP_ACCELERATION / 7.0;
@@ -25,6 +26,12 @@ const THRUST_START_SPEED: f32 = 150.0;
 const THRUST_DRAG: f32 = 0.5;
 const THRUST_SPAWN_FREQUENCY: f32 = 0.1;
 
+const BULLET_COLOR: Color = Color::srgb(1.0, 0.1, 0.1);
+const BULLET_SPEED: f32 = 1500.0;
+const BULLET_WIDTH: f32 = 0.2;
+const BULLET_HEIGHT: f32 = 1.0;
+const BULLET_SCALE: f32 = 20.0;
+
 
 fn main() {
     App::new()
@@ -34,7 +41,8 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update,
                      (
-                         ship_input,
+                         ship_movement_input,
+                         ship_shoot_input,
                          spawn_thrust_particles,
                          apply_acceleration,
                          limit_velocity,
@@ -63,6 +71,9 @@ struct Drag(f32);
 #[derive(Resource)]
 struct ThrustSpawnTimer(Timer);
 
+#[derive(Component)]
+struct Bullet;
+
 
 fn setup(
     mut commands: Commands,
@@ -73,11 +84,11 @@ fn setup(
 
     //Ship
     commands.spawn((
+        Ship,
         Mesh2d(meshes.add(Triangle2d::default())),
         MeshMaterial2d(materials.add(SHIP_COLOR)),
         Transform::from_translation(SHIP_STARTING_POSITION)
             .with_scale(Vec2::splat(SHIP_SCALE).extend(1.0)),
-        Ship,
         Acceleration(Vec2::ZERO),
         Velocity(Vec2::ZERO),
         Drag(SHIP_DRAG),
@@ -85,7 +96,7 @@ fn setup(
     ));
 }
 
-fn ship_input(
+fn ship_movement_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Acceleration, &mut Transform), With<Ship>>,
     time: Res<Time>,
@@ -111,9 +122,33 @@ fn ship_input(
     }
 }
 
+fn ship_shoot_input(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    query: Query<&Transform, With<Ship>>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if !keyboard_input.just_pressed(SHOOT_INPUT) { return; }
+
+    let ship_transform = query.single().unwrap();
+    let ship_direction = get_ship_direction(&ship_transform.rotation);
+
+    commands.spawn((
+        Bullet,
+        Mesh2d(meshes.add(Rectangle::new(BULLET_WIDTH, BULLET_HEIGHT))),
+        MeshMaterial2d(materials.add(BULLET_COLOR)),
+        Transform::from_translation(ship_transform.translation.truncate().extend(1.0))
+            .with_scale(Vec2::splat(BULLET_SCALE).extend(1.0))
+            .with_rotation(ship_transform.rotation),
+        Velocity(ship_direction * BULLET_SPEED),
+    ));
+}
+
 fn get_ship_direction(ship_rotation: &Quat) -> Vec2 {
     ship_rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate()
 }
+
 
 fn spawn_thrust_particles(
     mut commands: Commands,
