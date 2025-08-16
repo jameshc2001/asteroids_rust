@@ -7,6 +7,7 @@ pub const BACKWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyS, KeyCode::ArrowDown];
 pub const LEFT_INPUT: [KeyCode; 2] = [KeyCode::KeyA, KeyCode::ArrowLeft];
 pub const RIGHT_INPUT: [KeyCode; 2] = [KeyCode::KeyD, KeyCode::ArrowRight];
 pub const SHOOT_INPUT: KeyCode = KeyCode::Space;
+pub const SPAWN_ASTEROID_INPUT: KeyCode = KeyCode::KeyR;
 
 pub const SHIP_COLOR: Color = Color::WHITE;
 pub const SHIP_STARTING_POSITION: Vec3 = Vec3::new(50.0, -50.0, 100.0); //Always draw ship on top

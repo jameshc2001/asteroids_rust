@@ -1,10 +1,13 @@
-use std::ops::{Add, AddAssign, Mul, MulAssign};
-
+use bevy::math::bounding::Bounded2d;
 use bevy::prelude::*;
 use bevy::sprite::AlphaMode2d;
 use rand::Rng;
+use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 mod constants;
+mod asteroid;
+
+use crate::asteroid::*;
 use crate::constants::*;
 
 
@@ -18,6 +21,7 @@ fn main() {
                      (
                          ship_movement_input,
                          ship_shoot_input,
+                         spawn_asteroid,
                          spawn_thrust_particles,
                          apply_acceleration,
                          limit_velocity,
