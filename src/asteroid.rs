@@ -1,8 +1,9 @@
-use std::ops::Mul;
-use bevy::prelude::*;
-use rand::Rng;
-use crate::Asteroid;
 use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
+use crate::Asteroid;
+use bevy::prelude::*;
+use bevy::reflect::List;
+use rand::Rng;
+use std::ops::Mul;
 
 pub fn create_asteroid_vertices() -> Vec<Vec2> {
     let radius: f32 = rand::rng().random_range(ASTEROID_MIN_RADIUS .. ASTEROID_MAX_RADIUS);
@@ -31,14 +32,21 @@ pub fn spawn_asteroid(
         commands.entity(existing_asteroid_entity).despawn();
     }
 
+    let vertices = create_asteroid_vertices();
+    
+    let mut max_radius: f32 = 0.0;
+    for v in &vertices {
+        max_radius = max_radius.max(v.length());
+    }
+
     let parent = commands.spawn((
-        Asteroid,
+        Asteroid { max_radius },
         Transform::from_xyz(200.0, 0.0, 0.0)
             .with_rotation(Quat::from_rotation_z(rand::rng().random_range(0.0 .. std::f32::consts::TAU))),
         GlobalTransform::default(),
     )).id();
 
-    for pair in create_asteroid_vertices().windows(2) {
+    for pair in vertices.windows(2) {
         let (curr, next) = (pair[0], pair[1]);
         let child = spawn_line(&mut commands, &mut meshes, &mut materials, curr, next);
         commands.entity(parent).add_child(child);

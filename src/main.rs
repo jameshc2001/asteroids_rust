@@ -28,6 +28,7 @@ fn main() {
                          apply_velocity,
                          apply_drag,
                          update_and_fade_lifetime,
+                         bullet_asteroid_collision,
                      ).chain())
         .run();
 }
@@ -53,8 +54,10 @@ struct ThrustSpawnTimer(Timer);
 #[derive(Component)]
 struct Bullet;
 
-#[derive(Component)]
-struct Asteroid;
+#[derive(Component, Debug)]
+struct Asteroid {
+    max_radius: f32,
+}
 
 #[derive(Component, Debug)]
 struct Lifetime {
@@ -197,6 +200,41 @@ fn spawn_thrust_particles(
     ));
 }
 
+fn update_and_fade_lifetime(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut query: Query<(Entity, &mut Lifetime, &MeshMaterial2d<ColorMaterial>)>,
+) {
+    for (entity, mut lifetime, material) in &mut query {
+        lifetime.age += time.delta_secs();
+        if lifetime.age <= lifetime.max { continue; }
+
+        let time_since_max = ((lifetime.age - lifetime.max) / lifetime.fade).clamp(0.0, 1.0);
+        if let Some(mat) = materials.get_mut(material) {
+            mat.color = mat.color.with_alpha(1.0 - time_since_max);
+        }
+        if time_since_max >= 1.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn bullet_asteroid_collision(
+    mut commands: Commands,
+    asteroid_query: Query<(Entity, &Transform, &Asteroid)>,
+    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
+) {
+    for (bullet_entity, bullet_transform) in bullet_query.iter() {
+        for (asteroid_entity, asteroid_transform, asteroid) in asteroid_query.iter() {
+            if asteroid_transform.translation.distance(bullet_transform.translation) < asteroid.max_radius {
+                commands.entity(asteroid_entity).despawn();
+                commands.entity(bullet_entity).despawn();
+            }
+        }
+    }
+}
+
 fn apply_acceleration(mut query: Query<(&mut Velocity, &Acceleration)>, time: Res<Time>) {
     for (mut velocity, acceleration) in &mut query {
         velocity.add_assign(acceleration.mul(time.delta_secs()));
@@ -219,26 +257,6 @@ fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
 fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
     for (mut transform, velocity) in &mut query {
         transform.translation.add_assign(velocity.mul(time.delta_secs()).extend(0.0));
-    }
-}
-
-fn update_and_fade_lifetime(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut query: Query<(Entity, &mut Lifetime, &MeshMaterial2d<ColorMaterial>)>,
-) {
-    for (entity, mut lifetime, material) in &mut query {
-        lifetime.age += time.delta_secs();
-        if lifetime.age <= lifetime.max { continue; }
-
-        let time_since_max = ((lifetime.age - lifetime.max) / lifetime.fade).clamp(0.0, 1.0);
-        if let Some(mat) = materials.get_mut(material) {
-            mat.color = mat.color.with_alpha(1.0 - time_since_max);
-        }
-        if time_since_max >= 1.0 {
-            commands.entity(entity).despawn();
-        }
     }
 }
 
