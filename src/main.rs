@@ -1,31 +1,45 @@
-use std::ops::{AddAssign, Mul, MulAssign};
+use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 use bevy::prelude::*;
-use bevy::sprite::MaterialMesh2dBundle;
+use rand::Rng;
 
 const BACKGROUND_COLOR: Color = Color::BLACK;
 
+const FORWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyW, KeyCode::ArrowUp];
+const BACKWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyS, KeyCode::ArrowDown];
+const LEFT_INPUT: [KeyCode; 2] = [KeyCode::KeyA, KeyCode::ArrowLeft];
+const RIGHT_INPUT: [KeyCode; 2] = [KeyCode::KeyD, KeyCode::ArrowRight];
+
 const SHIP_COLOR: Color = Color::WHITE;
 const SHIP_STARTING_POSITION: Vec3 = Vec3::new(50.0, -50.0, 1.0);
-const SHIP_SCALE: f32 = 50.0;
+const SHIP_SCALE: f32 = 25.0;
 const SHIP_ACCELERATION: f32 = 50000.0;
 const SHIP_DECELERATION: f32 = SHIP_ACCELERATION / 7.0;
 const SHIP_ROTATION_SPEED: f32 = 5.0;
 const SHIP_DRAG: f32 = 0.5;
 const SHIP_VELOCITY_LIMIT: f32 = 600.0;
 
+const THRUST_BASE_COLOR: Color = Color::srgb(1.0, 0.5, 0.1);
+const THRUST_SCALE: f32 = 10.0;
+const THRUST_START_SPEED: f32 = 150.0;
+const THRUST_DRAG: f32 = 0.5;
+const THRUST_SPAWN_FREQUENCY: f32 = 0.1;
+
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(ClearColor(BACKGROUND_COLOR))
+        .insert_resource(ThrustSpawnTimer(Timer::from_seconds(THRUST_SPAWN_FREQUENCY, TimerMode::Repeating)))
         .add_systems(Startup, setup)
         .add_systems(Update,
                      (
                          ship_input,
+                         spawn_thrust_particles,
                          apply_acceleration,
                          limit_velocity,
                          apply_velocity,
-                         apply_drag
+                         apply_drag,
                      ).chain())
         .run();
 }
@@ -45,21 +59,24 @@ struct VelocityLimit(f32);
 #[derive(Component, Deref, DerefMut)]
 struct Drag(f32);
 
+
+#[derive(Resource)]
+struct ThrustSpawnTimer(Timer);
+
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 
+    //Ship
     commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Triangle2d::default()).into(),
-            material: materials.add(SHIP_COLOR),
-            transform: Transform::from_translation(SHIP_STARTING_POSITION)
-                .with_scale(Vec2::splat(SHIP_SCALE).extend(1.0)),
-            ..default()
-        },
+        Mesh2d(meshes.add(Triangle2d::default())),
+        MeshMaterial2d(materials.add(SHIP_COLOR)),
+        Transform::from_translation(SHIP_STARTING_POSITION)
+            .with_scale(Vec2::splat(SHIP_SCALE).extend(1.0)),
         Ship,
         Acceleration(Vec2::ZERO),
         Velocity(Vec2::ZERO),
@@ -73,36 +90,92 @@ fn ship_input(
     mut query: Query<(&mut Acceleration, &mut Transform), With<Ship>>,
     time: Res<Time>,
 ) {
-    let (mut ship_acceleration, mut ship_transform) = query.single_mut();
+    let (mut ship_acceleration, mut ship_transform) = query.single_mut().unwrap();
     ship_acceleration.0 = Vec2::new(0.0, 0.0);
-    let direction = ship_transform.rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate();
+    let direction = get_ship_direction(&ship_transform.rotation);
 
-    if keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
-        ship_acceleration.0 = direction * SHIP_ACCELERATION * time.delta_seconds()
+    if keyboard_input.any_pressed(FORWARD_INPUT) {
+        ship_acceleration.0 = direction * SHIP_ACCELERATION * time.delta_secs()
     }
 
-    if keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) {
-        ship_acceleration.0 = -direction * SHIP_DECELERATION * time.delta_seconds()
+    if keyboard_input.any_pressed(BACKWARD_INPUT) {
+        ship_acceleration.0 = -direction * SHIP_DECELERATION * time.delta_secs()
     }
 
-    if keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
-        ship_transform.rotate_z(SHIP_ROTATION_SPEED * time.delta_seconds());
+    if keyboard_input.any_pressed(LEFT_INPUT) {
+        ship_transform.rotate_z(SHIP_ROTATION_SPEED * time.delta_secs());
     }
 
-    if keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
-        ship_transform.rotate_z(-SHIP_ROTATION_SPEED * time.delta_seconds());
+    if keyboard_input.any_pressed(RIGHT_INPUT) {
+        ship_transform.rotate_z(-SHIP_ROTATION_SPEED * time.delta_secs());
     }
+}
+
+fn get_ship_direction(ship_rotation: &Quat) -> Vec2 {
+    ship_rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)).truncate()
+}
+
+fn spawn_thrust_particles(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut timer: ResMut<ThrustSpawnTimer>,
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    query: Query<&Transform, With<Ship>>
+) {
+    if !keyboard_input.any_pressed(FORWARD_INPUT) { return; }
+    if keyboard_input.any_just_pressed(FORWARD_INPUT) {
+        timer.0.reset();
+    } else {
+        if !timer.0.tick(time.delta()).just_finished() { return; }
+    }
+
+    let ship_transform = query.single().unwrap();
+    let ship_direction = get_ship_direction(&ship_transform.rotation);
+    let ship_perpendicular = ship_direction.perp();
+
+    let random_rotation = rand::rng().random_range(-0.5 .. 0.5f32);
+    let particle_direction = Vec2::new(
+        random_rotation.cos(),
+        random_rotation.sin()
+    ).rotate(-ship_direction);
+
+    let random_perp_dist = rand::rng().random_range(-7.0..7.0f32);
+    let particle_start_location = ship_transform.translation
+        .truncate()
+        .add(particle_direction.mul(SHIP_SCALE / 4.0))
+        .add(ship_perpendicular.mul(random_perp_dist))
+        .extend(0.0);
+
+    let random_size_scale = rand::rng().random_range(0.5 .. 1.25f32);
+    let random_speed_scale = rand::rng().random_range(0.8 .. 1.2f32);
+
+    let random_color = Color::srgb(
+        rand::rng().random_range(0.8 .. 1.0f32),
+        rand::rng().random_range(0.4 .. 0.6f32),
+        rand::rng().random_range(0.1 .. 0.3f32)
+    );
+
+    commands.spawn((
+        Mesh2d(meshes.add(Circle::default())),
+        MeshMaterial2d(materials.add(random_color)),
+        Transform::from_translation(particle_start_location)
+            .with_scale(Vec2::splat(THRUST_SCALE * random_size_scale).extend(1.0)),
+        Velocity(particle_direction.mul(THRUST_START_SPEED * random_speed_scale)),
+        Drag(THRUST_DRAG * random_size_scale)
+    ));
 }
 
 fn apply_acceleration(mut query: Query<(&mut Velocity, &Acceleration)>, time: Res<Time>) {
     for (mut velocity, acceleration) in &mut query {
-        velocity.add_assign(acceleration.mul(time.delta_seconds()));
+        velocity.add_assign(acceleration.mul(time.delta_secs()));
     }
 }
 
 fn apply_drag(mut query: Query<(&mut Velocity, &Drag)>, time: Res<Time>) {
     for (mut velocity, drag) in &mut query {
-        velocity.mul_assign(1.0 - (drag.0 * time.delta_seconds()));
+        velocity.mul_assign(1.0 - (drag.0 * time.delta_secs()));
     }
 }
 
@@ -115,11 +188,11 @@ fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
 
 fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
     for (mut transform, velocity) in &mut query {
-        transform.translation.add_assign(velocity.mul(time.delta_seconds()).extend(0.0));
+        transform.translation.add_assign(velocity.mul(time.delta_secs()).extend(0.0));
     }
 }
 
 fn log(mut query: Query<(&Acceleration, &Velocity, &Transform), With<Ship>>) {
-    let (a, v, t) = query.single_mut();
+    let (a, v, t) = query.single_mut().unwrap();
     println!("{:?} {:?} {:?}", a, v, t.rotation.mul_vec3(Vec3::new(0.0, 1.0, 0.0)));
 }
