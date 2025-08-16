@@ -1,15 +1,17 @@
 use std::ops::Mul;
 use bevy::prelude::*;
-use crate::constants::SPAWN_ASTEROID_INPUT;
+use rand::Rng;
+use crate::Asteroid;
+use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
 
 pub fn create_asteroid_vertices() -> Vec<Vec2> {
-    let num_of_vertices: usize = 16;
-    let radius: f32 = 100.0;
+    let radius: f32 = rand::rng().random_range(ASTEROID_MIN_RADIUS .. ASTEROID_MAX_RADIUS);
 
-    let mut vertices = Vec::with_capacity(num_of_vertices + 1);
-    for v in 0..num_of_vertices {
-        let t = v as f32 / num_of_vertices as f32 * std::f32::consts::TAU; //+ random to rotate them
-        vertices.push(Vec2::new(t.cos(), t.sin()).mul(radius));
+    let mut vertices = Vec::with_capacity(ASTEROID_VERTICES + 1);
+    for v in 0..ASTEROID_VERTICES {
+        let t = v as f32 / ASTEROID_VERTICES as f32 * std::f32::consts::TAU;// + random_rotation;
+        let random_radius_scale = rand::rng().random_range(0.75 .. 1.25f32);
+        vertices.push(Vec2::new(t.cos(), t.sin()).mul(radius * random_radius_scale));
     }
     vertices.push(vertices[0]);
 
@@ -21,14 +23,26 @@ pub fn spawn_asteroid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    query: Query<Entity, With<Asteroid>>,
 ) {
     if !keyboard_input.just_pressed(SPAWN_ASTEROID_INPUT) { return; }
 
-    for pair in create_asteroid_vertices().windows(2) {
-        let (curr, next) = (pair[0], pair[1]);
-        spawn_line(&mut commands, &mut meshes, &mut materials, curr, next);
+    if let Ok(existing_asteroid_entity) = query.single() {
+        commands.entity(existing_asteroid_entity).despawn();
     }
 
+    let parent = commands.spawn((
+        Asteroid,
+        Transform::from_xyz(200.0, 0.0, 0.0)
+            .with_rotation(Quat::from_rotation_z(rand::rng().random_range(0.0 .. std::f32::consts::TAU))),
+        GlobalTransform::default(),
+    )).id();
+
+    for pair in create_asteroid_vertices().windows(2) {
+        let (curr, next) = (pair[0], pair[1]);
+        let child = spawn_line(&mut commands, &mut meshes, &mut materials, curr, next);
+        commands.entity(parent).add_child(child);
+    }
 }
 
 fn spawn_line(
@@ -37,7 +51,7 @@ fn spawn_line(
     materials: &mut ResMut<Assets<ColorMaterial>>,
     a: Vec2,
     b: Vec2,
-) {
+) -> Entity {
     let delta = b - a;
     let length = delta.length().max(0.0001);
     let angle = delta.y.atan2(delta.x);
@@ -52,18 +66,5 @@ fn spawn_line(
             scale: Vec3::splat(1.0),
             ..default()
         },
-    ));
+    )).id()
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn create_asteroid_vertices_basic_properties() {
-//         let vertices = create_asteroid_vertices();
-//         assert_eq!(vertices.len(), 21);
-//         println!("{:?}", vertices);
-//     }
-// }
-

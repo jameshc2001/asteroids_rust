@@ -33,3 +33,7 @@ pub const BULLET_HEIGHT: f32 = 1.0;
 pub const BULLET_SCALE: f32 = 20.0;
 pub const BULLET_LIFETIME: f32 = 2.0;
 pub const BULLET_FADE_DURATION: f32 = 0.1;
+
+pub const ASTEROID_VERTICES: usize = 16;
+pub const ASTEROID_MIN_RADIUS: f32 = 20.0;
+pub const ASTEROID_MAX_RADIUS: f32 = 100.0;

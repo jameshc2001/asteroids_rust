@@ -53,6 +53,9 @@ struct ThrustSpawnTimer(Timer);
 #[derive(Component)]
 struct Bullet;
 
+#[derive(Component)]
+struct Asteroid;
+
 #[derive(Component, Debug)]
 struct Lifetime {
     age: f32,
