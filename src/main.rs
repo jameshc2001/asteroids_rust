@@ -3,34 +3,8 @@ use std::ops::{Add, AddAssign, Mul, MulAssign};
 use bevy::prelude::*;
 use rand::Rng;
 
-const BACKGROUND_COLOR: Color = Color::BLACK;
-
-const FORWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyW, KeyCode::ArrowUp];
-const BACKWARD_INPUT: [KeyCode; 2] = [KeyCode::KeyS, KeyCode::ArrowDown];
-const LEFT_INPUT: [KeyCode; 2] = [KeyCode::KeyA, KeyCode::ArrowLeft];
-const RIGHT_INPUT: [KeyCode; 2] = [KeyCode::KeyD, KeyCode::ArrowRight];
-const SHOOT_INPUT: KeyCode = KeyCode::Space;
-
-const SHIP_COLOR: Color = Color::WHITE;
-const SHIP_STARTING_POSITION: Vec3 = Vec3::new(50.0, -50.0, 100.0); //Always draw ship on top
-const SHIP_SCALE: f32 = 25.0;
-const SHIP_ACCELERATION: f32 = 50000.0;
-const SHIP_DECELERATION: f32 = SHIP_ACCELERATION / 7.0;
-const SHIP_ROTATION_SPEED: f32 = 5.0;
-const SHIP_DRAG: f32 = 0.5;
-const SHIP_VELOCITY_LIMIT: f32 = 600.0;
-
-const THRUST_BASE_COLOR: Color = Color::srgb(1.0, 0.5, 0.1);
-const THRUST_SCALE: f32 = 10.0;
-const THRUST_START_SPEED: f32 = 150.0;
-const THRUST_DRAG: f32 = 0.5;
-const THRUST_SPAWN_FREQUENCY: f32 = 0.1;
-
-const BULLET_COLOR: Color = Color::srgb(1.0, 0.1, 0.1);
-const BULLET_SPEED: f32 = 1500.0;
-const BULLET_WIDTH: f32 = 0.2;
-const BULLET_HEIGHT: f32 = 1.0;
-const BULLET_SCALE: f32 = 20.0;
+mod constants;
+use crate::constants::*;
 
 
 fn main() {
