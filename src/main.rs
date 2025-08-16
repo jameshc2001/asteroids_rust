@@ -1,6 +1,7 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 use bevy::prelude::*;
+use bevy::sprite::AlphaMode2d;
 use rand::Rng;
 
 mod constants;
@@ -22,6 +23,7 @@ fn main() {
                          limit_velocity,
                          apply_velocity,
                          apply_drag,
+                         update_and_fade_lifetime,
                      ).chain())
         .run();
 }
@@ -41,12 +43,18 @@ struct VelocityLimit(f32);
 #[derive(Component, Deref, DerefMut)]
 struct Drag(f32);
 
-
 #[derive(Resource)]
 struct ThrustSpawnTimer(Timer);
 
 #[derive(Component)]
 struct Bullet;
+
+#[derive(Component, Debug)]
+struct Lifetime {
+    age: f32,
+    max: f32,
+    fade: f32
+}
 
 
 fn setup(
@@ -116,6 +124,7 @@ fn ship_shoot_input(
             .with_scale(Vec2::splat(BULLET_SCALE).extend(1.0))
             .with_rotation(ship_transform.rotation),
         Velocity(ship_direction * BULLET_SPEED),
+        Lifetime { age: 0.0, max: BULLET_LIFETIME, fade: BULLET_FADE_DURATION },
     ));
 }
 
@@ -168,11 +177,16 @@ fn spawn_thrust_particles(
 
     commands.spawn((
         Mesh2d(meshes.add(Circle::default())),
-        MeshMaterial2d(materials.add(random_color)),
+        MeshMaterial2d(materials.add(ColorMaterial {
+            color: random_color,
+            alpha_mode: AlphaMode2d::Blend,
+            ..default()
+        })),
         Transform::from_translation(particle_start_location)
             .with_scale(Vec2::splat(THRUST_SCALE * random_size_scale).extend(1.0)),
         Velocity(particle_direction.mul(THRUST_START_SPEED * random_speed_scale)),
-        Drag(THRUST_DRAG * random_size_scale)
+        Drag(THRUST_DRAG * random_size_scale),
+        Lifetime { age: 0.0, max: THRUST_LIFETIME, fade: THRUST_FADE_DURATION },
     ));
 }
 
@@ -198,6 +212,26 @@ fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
 fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
     for (mut transform, velocity) in &mut query {
         transform.translation.add_assign(velocity.mul(time.delta_secs()).extend(0.0));
+    }
+}
+
+fn update_and_fade_lifetime(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut query: Query<(Entity, &mut Lifetime, &MeshMaterial2d<ColorMaterial>)>,
+) {
+    for (entity, mut lifetime, material) in &mut query {
+        lifetime.age += time.delta_secs();
+        if lifetime.age <= lifetime.max { continue; }
+
+        let time_since_max = ((lifetime.age - lifetime.max) / lifetime.fade).clamp(0.0, 1.0);
+        if let Some(mat) = materials.get_mut(material) {
+            mat.color = mat.color.with_alpha(1.0 - time_since_max);
+        }
+        if time_since_max >= 1.0 {
+            commands.entity(entity).despawn();
+        }
     }
 }
 

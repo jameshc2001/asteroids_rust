@@ -22,9 +22,13 @@ pub const THRUST_SCALE: f32 = 10.0;
 pub const THRUST_START_SPEED: f32 = 150.0;
 pub const THRUST_DRAG: f32 = 0.5;
 pub const THRUST_SPAWN_FREQUENCY: f32 = 0.1;
+pub const THRUST_LIFETIME: f32 = 3.0;
+pub const THRUST_FADE_DURATION: f32 = 4.0;
 
 pub const BULLET_COLOR: Color = Color::srgb(1.0, 0.1, 0.1);
 pub const BULLET_SPEED: f32 = 1500.0;
 pub const BULLET_WIDTH: f32 = 0.2;
 pub const BULLET_HEIGHT: f32 = 1.0;
 pub const BULLET_SCALE: f32 = 20.0;
+pub const BULLET_LIFETIME: f32 = 2.0;
+pub const BULLET_FADE_DURATION: f32 = 0.1;
