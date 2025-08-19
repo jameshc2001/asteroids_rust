@@ -40,10 +40,11 @@ pub fn spawn_asteroid(
     }
 
     let parent = commands.spawn((
-        Asteroid { max_radius, alive: true },
+        Asteroid { max_radius },
         Transform::from_xyz(200.0, 0.0, 0.0)
             .with_rotation(Quat::from_rotation_z(rand::rng().random_range(0.0 .. std::f32::consts::TAU))),
         RotationVelocity(random_rotation()),
+        Lifetime { max: 20.0, fade: 0.5, enabled: false, ..default() },
         GlobalTransform::default(),
     )).id();
 

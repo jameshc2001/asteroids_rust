@@ -28,7 +28,6 @@ pub struct Bullet;
 #[derive(Component, Debug)]
 pub struct Asteroid {
     pub max_radius: f32,
-    pub alive: bool,
 }
 
 #[derive(Component)]
