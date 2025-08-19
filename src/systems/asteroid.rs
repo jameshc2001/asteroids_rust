@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use rand::Rng;
 use std::ops::Mul;
 
-use crate::components::{Asteroid, RotationVelocity};
-use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
+use crate::components::{Asteroid, Lifetime, RotationVelocity};
+use crate::constants::{ASTEROID_LINE_FADE_DURATION, ASTEROID_LINE_LIFETIME, ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
 
 pub fn create_asteroid_vertices() -> Vec<Vec2> {
     let radius: f32 = rand::rng().random_range(ASTEROID_MIN_RADIUS .. ASTEROID_MAX_RADIUS);
@@ -40,7 +40,7 @@ pub fn spawn_asteroid(
     }
 
     let parent = commands.spawn((
-        Asteroid { max_radius },
+        Asteroid { max_radius, alive: true },
         Transform::from_xyz(200.0, 0.0, 0.0)
             .with_rotation(Quat::from_rotation_z(rand::rng().random_range(0.0 .. std::f32::consts::TAU))),
         RotationVelocity(random_rotation()),
@@ -83,5 +83,6 @@ fn spawn_line(
             scale: Vec3::splat(1.0),
             ..default()
         },
+        Lifetime { max: ASTEROID_LINE_LIFETIME, fade: ASTEROID_LINE_FADE_DURATION, enabled: false, ..default() }
     )).id()
 }

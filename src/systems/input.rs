@@ -49,7 +49,7 @@ pub fn ship_shoot_input(
             .with_scale(Vec2::splat(BULLET_SCALE).extend(1.0))
             .with_rotation(ship_transform.rotation),
         Velocity(ship_direction * BULLET_SPEED),
-        Lifetime { age: 0.0, max: BULLET_LIFETIME, fade: BULLET_FADE_DURATION },
+        Lifetime { max: BULLET_LIFETIME, fade: BULLET_FADE_DURATION, ..default() },
     ));
 }
 

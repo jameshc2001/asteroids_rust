@@ -60,6 +60,6 @@ pub fn spawn_thrust_particles(
             .with_scale(Vec2::splat(THRUST_SCALE * random_size_scale).extend(1.0)),
         Velocity(particle_direction.mul(THRUST_START_SPEED * random_speed_scale)),
         Damping(THRUST_DRAG * random_size_scale),
-        Lifetime { age: 0.0, max: THRUST_LIFETIME, fade: THRUST_FADE_DURATION },
+        Lifetime { max: THRUST_LIFETIME, fade: THRUST_FADE_DURATION, ..default() },
     ));
 }

@@ -25,6 +25,7 @@ pub struct Bullet;
 #[derive(Component, Debug)]
 pub struct Asteroid {
     pub max_radius: f32,
+    pub alive: bool,
 }
 
 #[derive(Component, Debug)]
@@ -32,6 +33,7 @@ pub struct Lifetime {
     pub age: f32,
     pub max: f32,
     pub fade: f32,
+    pub enabled: bool,
 }
 
 // Resources
