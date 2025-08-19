@@ -26,6 +26,7 @@ fn main() {
                          apply_acceleration,
                          limit_velocity,
                          apply_velocity,
+                         apply_rotation_velocity,
                          apply_drag,
                          update_and_fade_lifetime,
                          bullet_asteroid_collision,
@@ -44,6 +45,9 @@ struct Velocity(Vec2);
 
 #[derive(Component, Deref, DerefMut)]
 struct VelocityLimit(f32);
+
+#[derive(Component, Deref, DerefMut)]
+struct RotationVelocity(f32);
 
 #[derive(Component, Deref, DerefMut)]
 struct Drag(f32);
@@ -257,6 +261,12 @@ fn limit_velocity(mut query: Query<(&mut Velocity, &VelocityLimit)>) {
 fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
     for (mut transform, velocity) in &mut query {
         transform.translation.add_assign(velocity.mul(time.delta_secs()).extend(0.0));
+    }
+}
+
+fn apply_rotation_velocity(mut query: Query<(&mut Transform, &RotationVelocity)>, time: Res<Time>) {
+    for (mut transform, velocity) in &mut query {
+        transform.rotate_z(velocity.mul(time.delta_secs()));
     }
 }
 

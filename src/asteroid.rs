@@ -1,5 +1,5 @@
 use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
-use crate::Asteroid;
+use crate::{Asteroid, RotationVelocity};
 use bevy::prelude::*;
 use bevy::reflect::List;
 use rand::Rng;
@@ -43,6 +43,7 @@ pub fn spawn_asteroid(
         Asteroid { max_radius },
         Transform::from_xyz(200.0, 0.0, 0.0)
             .with_rotation(Quat::from_rotation_z(rand::rng().random_range(0.0 .. std::f32::consts::TAU))),
+        RotationVelocity(random_rotation()),
         GlobalTransform::default(),
     )).id();
 
@@ -50,6 +51,14 @@ pub fn spawn_asteroid(
         let (curr, next) = (pair[0], pair[1]);
         let child = spawn_line(&mut commands, &mut meshes, &mut materials, curr, next);
         commands.entity(parent).add_child(child);
+    }
+}
+
+fn random_rotation() -> f32 {
+    if rand::rng().random_bool(0.5) {
+        rand::rng().random_range(-1.2 .. -0.2)
+    } else {
+        rand::rng().random_range(0.2 .. 1.2)
     }
 }
 
