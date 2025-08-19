@@ -1,9 +1,9 @@
-use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
-use crate::{Asteroid, RotationVelocity};
 use bevy::prelude::*;
-use bevy::reflect::List;
 use rand::Rng;
 use std::ops::Mul;
+
+use crate::components::{Asteroid, RotationVelocity};
+use crate::constants::{ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
 
 pub fn create_asteroid_vertices() -> Vec<Vec2> {
     let radius: f32 = rand::rng().random_range(ASTEROID_MIN_RADIUS .. ASTEROID_MAX_RADIUS);
