@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use rand::Rng;
 use std::ops::Mul;
-
-use crate::components::{Asteroid, Lifetime, RotationVelocity};
-use crate::constants::{ASTEROID_LINE_FADE_DURATION, ASTEROID_LINE_LIFETIME, ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
+use bevy::sprite::AlphaMode2d;
+use crate::components::{Asteroid, AsteroidLine, Lifetime, RotationDamping, RotationVelocity, Velocity};
+use crate::constants::{ASTEROID_LINE_DAMPING, ASTEROID_LINE_FADE_DURATION, ASTEROID_LINE_LIFETIME, ASTEROID_MAX_RADIUS, ASTEROID_MIN_RADIUS, ASTEROID_VERTICES, SPAWN_ASTEROID_INPUT};
 
 pub fn create_asteroid_vertices() -> Vec<Vec2> {
     let radius: f32 = rand::rng().random_range(ASTEROID_MIN_RADIUS .. ASTEROID_MAX_RADIUS);
@@ -54,7 +54,7 @@ pub fn spawn_asteroid(
     }
 }
 
-fn random_rotation() -> f32 {
+pub fn random_rotation() -> f32 {
     if rand::rng().random_bool(0.5) {
         rand::rng().random_range(-1.2 .. -0.2)
     } else {
@@ -75,14 +75,22 @@ fn spawn_line(
     let midpoint = (a + b) * 0.5;
     
     commands.spawn((
+        AsteroidLine,
         Mesh2d(meshes.add(Rectangle::new(length, 2.0))),
-        MeshMaterial2d(materials.add(Color::WHITE)),
+        MeshMaterial2d(materials.add(ColorMaterial {
+            color: Color::WHITE,
+            alpha_mode: AlphaMode2d::Blend,
+            ..default()
+        })),
         Transform {
             translation: midpoint.extend(0.1),
             rotation: Quat::from_rotation_z(angle),
             scale: Vec3::splat(1.0),
             ..default()
         },
-        Lifetime { max: ASTEROID_LINE_LIFETIME, fade: ASTEROID_LINE_FADE_DURATION, enabled: false, ..default() }
+        Lifetime { max: ASTEROID_LINE_LIFETIME, fade: ASTEROID_LINE_FADE_DURATION, enabled: false, ..default() },
+        Velocity(Vec2::ZERO),
+        RotationVelocity(0.0),
+        RotationDamping(ASTEROID_LINE_DAMPING)
     )).id()
 }

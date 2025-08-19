@@ -19,6 +19,9 @@ pub struct RotationVelocity(pub f32);
 #[derive(Component, Deref, DerefMut)]
 pub struct Damping(pub f32);
 
+#[derive(Component, Deref, DerefMut)]
+pub struct RotationDamping(pub f32);
+
 #[derive(Component)]
 pub struct Bullet;
 
@@ -27,6 +30,9 @@ pub struct Asteroid {
     pub max_radius: f32,
     pub alive: bool,
 }
+
+#[derive(Component)]
+pub struct AsteroidLine;
 
 #[derive(Component, Debug)]
 pub struct Lifetime {

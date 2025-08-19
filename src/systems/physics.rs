@@ -8,9 +8,15 @@ pub fn apply_acceleration(mut query: Query<(&mut Velocity, &Acceleration)>, time
     }
 }
 
-pub fn apply_drag(mut query: Query<(&mut Velocity, &Damping)>, time: Res<Time>) {
+pub fn apply_damping(mut query: Query<(&mut Velocity, &Damping)>, time: Res<Time>) {
     for (mut velocity, damping) in &mut query {
         velocity.0 *= 1.0 - (damping.0 * time.delta_secs());
+    }
+}
+
+pub fn apply_rotation_damping(mut query: Query<(&mut RotationVelocity, &RotationDamping)>, time: Res<Time>) {
+    for (mut rotation_velocity, damping) in &mut query {
+        rotation_velocity.0 *= 1.0 - (damping.0 * time.delta_secs());
     }
 }
 
